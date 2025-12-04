@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Resume Preview & Download</title>
+  <style>
+    :root{
+      --bg:#f6f8fb; --card:#ffffff; --accent:#2b6ef6; --muted:#6b7280;
+      --shadow: 0 6px 18px rgba(34,41,47,0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    body{margin:0;background:var(--bg);color:#0f172a;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:26px;}
+    .wrap{width:100%;max-width:1000px;}
+    .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #eef2f7;}
+    header h1{font-size:18px;margin:0;}
+    .controls{display:flex;gap:10px;align-items:center;}
+    .btn{
+      background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:0;font-weight:600;cursor:pointer;
+      box-shadow:0 6px 12px rgba(43,110,246,0.12);
+    }
+    .btn.secondary{background:transparent;color:var(--accent);border:1px solid #dbe8ff;font-weight:700;}
+    .main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px;}
+    .preview{
+      background:#fafbff;border-radius:10px;padding:10px;min-height:540px;display:flex;flex-direction:column;
+    }
+    .preview iframe{border:0;flex:1;border-radius:8px;background:white;}
+    .meta{padding:12px;border-left:1px solid #f1f5f9;}
+    .meta label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+    .input, .url-input{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eefb;font-size:14px;}
+    .small{font-size:13px;color:var(--muted);margin-top:10px;}
+    .hint{font-size:13px;color:#ef4444;margin-top:10px}
+    footer{padding:12px 18px;border-top:1px solid #eef2f7;background:linear-gradient(180deg,transparent,rgba(11,14,38,0.01));display:flex;justify-content:space-between;align-items:center;}
+    a.link{color:var(--accent);text-decoration:none;font-weight:600}
+    @media (max-width:900px){.main{grid-template-columns:1fr;}.meta{border-left:0;border-top:1px solid #f1f5f9;padding-top:14px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="region" aria-label="Resume preview and download">
+      <header>
+        <h1>Resume Preview & Download</h1>
+        <div class="controls">
+          <button id="downloadBtn" class="btn">Download</button>
+          <button id="openBtn" class="btn secondary">Open in new tab</button>
+        </div>
+      </header>
+
+      <div class="main">
+        <div class="preview">
+          <!-- Preview iframe: may be blocked by some sites (X-Frame-Options). -->
+          <iframe id="previewFrame" src="" title="Resume preview"></iframe>
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+            <input id="fileName" class="input" placeholder="Filename when downloading (e.g. Keerthana-Resume.pdf)" />
+            <select id="method" class="input" style="width:160px;">
+              <option value="fetch">Smart download (fetch blob)</option>
+              <option value="link">Direct link (download attribute)</option>
+            </select>
+          </div>
+        </div>
+
+        <aside class="meta">
+          <label for="urlInput">Direct file URL (must be a direct link to a PDF / file you have permission to download):</label>
+          <input id="urlInput" class="url-input" placeholder="Replace with the public PDF URL / direct file link" />
+          <div class="small">Tips:
+            <ul style="margin:8px 0 0 18px">
+              <li>Use a direct URL to the file (ends with .pdf typically) — not just the Canva design page URL.</li>
+              <li>If you only have the Canva page URL, ask the owner to share a download link or a PDF copy.</li>
+            </ul>
+          </div>
+          <div class="hint" id="hint" aria-live="polite"></div>
+        </aside>
+      </div>
+
+      <footer>
+        <div>Made for safe, permitted downloads only — don’t use this to bypass access controls.</div>
+        <div><a id="sourceLink" class="link" href="#" target="_blank" rel="noopener">Open source template</a></div>
+      </footer>
+    </div>
+  </div>
+
+<script>
+/*
+  IMPORTANT:
+  - Replace the placeholder below with a direct downloadable file URL if you have permission.
+  - If you only have a Canva "site" page (like the URL you provided), that is NOT necessarily a direct file link.
+  - If the server blocks cross-origin requests or disallows embedding, the script falls back to opening the link.
+*/
+
+const DEFAULT_URL = ""; // <-- optional: paste a direct PDF link here, or leave empty and paste in the input box.
+const urlInput = document.getElementById('urlInput');
+const previewFrame = document.getElementById('previewFrame');
+const downloadBtn = document.getElementById('downloadBtn');
+const openBtn = document.getElementById('openBtn');
+const fileNameInput = document.getElementById('fileName');
+const methodSelect = document.getElementById('method');
+const hint = document.getElementById('hint');
+const sourceLink = document.getElementById('sourceLink');
+
+sourceLink.href = "about:blank";
+
+if (DEFAULT_URL) { urlInput.value = DEFAULT_URL; setupPreview(DEFAULT_URL); }
+
+urlInput.addEventListener('change', (e)=>{
+  const u = e.target.value.trim();
+  setupPreview(u);
+});
+
+function setupPreview(u){
+  if (!u) { previewFrame.src = ""; hint.textContent = ""; sourceLink.href = "#"; return; }
+  // Try to show preview in iframe:
+  previewFrame.src = u;
+  sourceLink.href = u;
+  hint.textContent = "If the preview stays blank the remote site likely blocks embedding — use 'Open in new tab' or 'Download' instead.";
+}
+
+openBtn.addEventListener('click', ()=>{
+  const u = urlInput.value.trim();
+  if (!u) { alert('Please paste the direct file URL (or a public URL) into the input box.'); return; }
+  window.open(u, '_blank', 'noopener');
+});
+
+// Download logic
+downloadBtn.addEventListener('click', async ()=>{
+  const url = urlInput.value.trim();
+  if (!url) { alert('Paste the direct file URL (PDF/file) you have permission to download.'); return; }
+
+  const filename = (fileNameInput.value.trim() || url.split('/').pop() || 'downloaded-file').split('?')[0];
+
+  if (methodSelect.value === 'link') {
+    // Simple anchor download (works only if CORS and server allow it)
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+
+  // method: fetch -> blob -> download
+  hint.textContent = 'Starting download (attempting fetch). If it fails due to CORS, the file will open in a new tab.';
+  try {
+    const resp = await fetch(url, {mode: 'cors'}); // may throw or be blocked by CORS
+    if (!resp.ok) throw new Error('Network response not OK: ' + resp.status);
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // release after a short delay
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 5000);
+    hint.textContent = 'Download started.';
+  } catch (err) {
+    console.error(err);
+    hint.textContent = 'Fetch failed (likely a CORS or permission issue). Opening file in new tab as fallback.';
+    window.open(url, '_blank', 'noopener');
+  }
+});
+</script>
+</body>
+</html>
